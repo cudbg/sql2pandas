@@ -1,0 +1,6 @@
+pandas
+numpy
+gnureadline
+click
+pytest
+parsimonious
