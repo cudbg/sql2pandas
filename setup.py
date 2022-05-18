@@ -7,7 +7,7 @@ except ImportError:
 from setuptools import setup, find_packages
 
 setup(name="sql2pandas",
-      version="0.0.03",
+      version="0.0.04",
       description="Turn SQL into Pandas Statements",
       license="MIT",
       include_package_data = True,      
