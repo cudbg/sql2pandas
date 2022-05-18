@@ -51,21 +51,25 @@ class Context(object):
     if formatargs:
       line = line.format(**formatargs)
     self.compiler.add_line(line)
+    return self
 
   def add_lines(self, lines, **formatargs):
     if formatargs:
       lines = [line.format(**formatargs) for line in lines]
     self.compiler.add_lines(lines)
+    return self
 
   def set(self, lhs, rhs, **formatargs):
     if formatargs:
       lhs = lhs.format(**formatargs)
       rhs = rhs.format(**formatargs)
     self.compiler.set(lhs, rhs)
+    return self
 
   def print(self, *args):
     self.add_line("print({args})", 
         args=",".join(map(str, args)))
+    return self
 
 
   def declare(self, lhs, rhs=None, **formatargs):
@@ -77,11 +81,13 @@ class Context(object):
       if rhs:
         rhs = rhs.format(**formatargs)
     self.compiler.declare(lhs, rhs)
+    return self
 
   def returns(self, line, **formatargs):
     if formatargs:
       line = line.format(**formatargs)
     self.compiler.returns(line)
+    return self
 
   def new_var(self, *args, **kwargs):
     """
@@ -94,6 +100,35 @@ class Context(object):
       cond = cond.format(**formatargs)
     return self.compiler.indent(cond)
 
+  def func(self, fname, args, kwargs, **formatargs):
+    if not args and not kwargs:
+      self.add_line("%s()" % fname, **formatargs)
+      return
+
+    args = list(args)
+    for k, v in kwargs.items():
+      args.append("%s=%s" % (k,v))
+    args = ", ".join(args)
+    self.add_line("%s(%s)" % (fname, args), **formatargs)
+    return self
+
+
+  def func_multiline(self, fname, args, kwargs, **formatargs):
+    if not args and not kwargs:
+      self.add_line("%s()" % fname, **formatargs)
+      return
+
+    with self.indent("%s(" % fname, **formatargs):
+      args = list(args)
+      for k, v in kwargs.items():
+        args.append("%s=%s" % (k,v))
+      lines = ",\n".join(args).split("\n")
+      lines[-1] += ")"
+      self.add_lines(lines, **formatargs)
+    return self
+
+
+
   def add_io_vars(self, in_var, out_var):
     """
     Add an io variable request for expression compilation.
@@ -101,6 +136,7 @@ class Context(object):
     @out_var name of variable in compiled program that expression result should write to
     """
     self.io_vars.append((in_var, out_var))
+    return self
 
   def pop_io_vars(self):
     """
@@ -115,6 +151,7 @@ class Context(object):
        will be filled in by the child operators.  The main requested key is "row"
     """
     self.op_vars.append(d)
+    return self
 
   def pop_vars(self):
     return self.op_vars.pop()

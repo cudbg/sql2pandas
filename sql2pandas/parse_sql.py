@@ -46,16 +46,8 @@ grammar = Grammar(
     grouping_term  = ws expr
     having_clause  = HAVING wsp exprand
 
-    # releasestart 0
-    # # A0: implement orderby grammar to support one or more expressions
-    # #     where each expression may be optionally ASC or DESC (or asc/desc)
-    # orderby      = ORDER BY
-    #
-    # releaseend
-    # solstart 0
     orderby        = ORDER BY ordering_term (ws "," ordering_term)*
     ordering_term  = ws expr (ASC/DESC)?
-    # solend
 
     limit          = LIMIT wsp expr (OFFSET wsp expr)?
 
@@ -92,10 +84,10 @@ grammar = Grammar(
     date     = ("date" / "DATE") wsp dateregex
     compound_op = "UNION" / "union"
     binaryop = "+" / "-" / "*" / "/" / "==" / "=" / "<>" / "!=" / 
-               "<=" / ">=" / "<" / ">" / "and" / 
-               "AND" / "or" / "OR" / "like" / "LIKE" 
+               "<=" / ">=" / "<" / ">" / " and " / 
+               " AND " / " or " / " OR " / " like " / " LIKE " 
     binaryop_no_andor = "+" / "-" / "*" / "/" / "==" / "=" / "<>" / "!=" / 
-               "<=" / ">=" / "<" / ">" / "or" / "OR" / "like" / "LIKE" 
+               "<=" / ">=" / "<" / ">" / " or " / " OR " / " like " / " LIKE " 
     unaryop  = "+" / "-" / "not" / "NOT"
     ws       = ~"\s*"i
     wsp      = ~"\s+"i
