@@ -15,19 +15,18 @@ class JoinExpr(object):
     self.e = e
     self.side = side
 
-    self.key = "_%s_joinkey" % side
+    self.key = "_%s_key" % side
     self.kwargs = dict()
     self.drop = []
+    self.code = ""
 
-    if e.is_type(Attr):
-      ctx.add_line("{df}.set_index('{name}')", df=v_df, name=e.aname)
+    if 0 and e.is_type(Attr):
+      self.code = "{df}.set_index('{name}')".format(df=v_df, name=e.aname)
       self.kwargs['%s_index' % side] = bool(1)
     else: 
       v_e = t.compile_expr(ctx, e, v_df)
-      ctx.add_line("{df}['{lkey}'] = {e}",
-        df=v_df,
-        lkey=self.key,
-        e=v_e)
+      self.code = "{df}.assign({lkey}={e})".format(
+          df=v_df, lkey=self.key, e=v_e)
       self.kwargs['%s_on' % side] = self.key
       self.drop.append(self.key)
 
@@ -91,7 +90,6 @@ class PandasHashJoinRightTranslator(HashJoinRightTranslator, PandasRightTranslat
     # reference to the left translator's hash table variable
     v_ldf = self.left.v_ldf
     v_rdf = ctx['df']
-    v_rkey = "_joinkey"
     ctx.pop_vars()
 
     r_expr = self.op.join_attrs[1]
@@ -100,15 +98,13 @@ class PandasHashJoinRightTranslator(HashJoinRightTranslator, PandasRightTranslat
     kwargs.update(self.join_expr.kwargs)
     kwargs.update(self.left.join_expr.kwargs)
     drop = self.left.join_expr.drop + self.join_expr.drop
-    ctx.add_line("{outdf} = {ldf}.merge({rdf}, **{kwargs})",
-        outdf=self.v_outdf,
-        ldf=v_ldf,
-        rdf=v_rdf,
-        kwargs=kwargs)
-    if drop:
-      ctx.add_line("{outdf} = {outdf}.drop({drop}, axis=1)",
-          outdf=self.v_outdf,
-          drop=json.dumps(drop))
+
+    with ctx.indent("{outdf} = ({left}", outdf=self.v_outdf, left=self.left.join_expr.code):
+      ctx.func(".merge", [self.join_expr.code, "**"+json.dumps(kwargs)], {})
+      if drop:
+        ctx.func(".drop", [json.dumps(drop)], dict(axis=1))
+      ctx.add_line(")")
+
     ctx['df'] = self.v_outdf
 
 

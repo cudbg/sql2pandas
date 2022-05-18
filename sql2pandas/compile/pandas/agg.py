@@ -1,4 +1,5 @@
 import json
+from ...context import Context
 from ..translator import *
 from ...exprs import *
 from ..agg import *
@@ -36,16 +37,18 @@ class PandasGroupByBottomTranslator(GroupByBottomTranslator, PandasTranslator):
     ctx.add_line("")
     ctx.add_line("# Start Groupby %s" % self.op)
 
+    assignments = []
 
     # Compute grouping expressions
     grouping_keys = []
     v_gexprs = self.compile_exprs(ctx, self.op.group_exprs, v_df)
     for i, e in enumerate(v_gexprs):
       grouping_keys.append(ctx.new_var("_gexpr"))
-      ctx.add_line("{df}['{key}'] = {e}",
-        df=v_df,
-        key=grouping_keys[-1],
-        e=e)
+      assignments.append((grouping_keys[-1], e))
+      #ctx.add_line("{df}['{key}'] = {e}",
+      #  df=v_df,
+      #  key=grouping_keys[-1],
+      #  e=e)
 
 
 
@@ -73,10 +76,11 @@ class PandasGroupByBottomTranslator(GroupByBottomTranslator, PandasTranslator):
     for a, e in zip(self.op.aliases, self.op.project_exprs):
       if self.can_inline(e):
         v_agg_arg = ctx.new_var("_agg_tmp")
-        ctx.add_line("{df}['{agg_arg}'] = {e}",
-          df=v_df,
-          agg_arg=v_agg_arg,
-          e=self.compile_expr_inline(ctx, e, v_df))
+        assignments.append((v_agg_arg, self.compile_expr_inline(ctx, e, v_df)))
+        #ctx.add_line("{df}['{agg_arg}'] = {e}",
+        #  df=v_df,
+        #  agg_arg=v_agg_arg,
+        #  e=self.compile_expr_inline(ctx, e, v_df))
         kwargs.append("{a}=('{col}', 'first')".format(
           a=a,
           col=v_agg_arg))
@@ -88,11 +92,12 @@ class PandasGroupByBottomTranslator(GroupByBottomTranslator, PandasTranslator):
 
           v_e = self.compile_expr(ctx, agg.args[0], v_df)
           v_agg_input = ctx.new_var("_agg_tmp")
-          ctx.add_line("{df}['{agg_input}'] = {e}",
-            df=v_df,
-            agg_input=v_agg_input,
-            e=v_e
-          )
+          assignments.append((v_agg_input, v_e))
+          #ctx.add_line("{df}['{agg_input}'] = {e}",
+          #  df=v_df,
+          #  agg_input=v_agg_input,
+          #  e=v_e
+          #)
 
           v_agg_arg = ctx.new_var("_agg_arg")
           cols_to_remove.append(v_agg_arg)
@@ -103,27 +108,31 @@ class PandasGroupByBottomTranslator(GroupByBottomTranslator, PandasTranslator):
             e = Attr(v_agg_arg, idx=len(kwargs)-1)
         postprocess_exprs.append((a,e))
 
-
+    tmpdf = (Context()
+      .func("{df}.assign", [], dict(assignments), df=v_df)
+      .compiler.compile_to_code())
 
     # apply expressions in arguments of agg functions
-    ctx.add_line("{outdf} = {df}.groupby({grouping_keys}).agg({kwargs})",
-      df=v_df,
-      outdf=self.v_outdf,
-      grouping_keys=json.dumps(grouping_keys),
-      kwargs=", ".join(kwargs))
+    with ctx.indent("{outdf} = ({tmpdf}", outdf=self.v_outdf, tmpdf=tmpdf):
+      ctx.add_lines([
+        ".groupby({grouping_keys})",
+        ".agg({kwargs}))"],
+        grouping_keys=json.dumps(grouping_keys),
+        kwargs=", ".join(kwargs))
 
     # apply expressions over agg functions
-    for a, e in postprocess_exprs:
-      v_e = self.compile_expr(ctx, e, self.v_outdf)
-      ctx.add_line("{df}['{alias}'] = {e}",
-          df=self.v_outdf,
-          alias=a,
-          e=v_e
-      )
+    kwargs = dict([(a, self.compile_expr(ctx, e, self.v_outdf)) 
+      for a, e in postprocess_exprs])
+    tmpdf = (Context()
+      .func("{df}.assign", [], kwargs, df=self.v_outdf)
+      .compiler.compile_to_code())
 
-    ctx.add_line("{df} = {df}.drop({cols}, axis=1).reset_index(drop=True)",
-      df=self.v_outdf,
-      cols=json.dumps(cols_to_remove))
+    with ctx.indent("{df} = ({tmpdf}", df=self.v_outdf, tmpdf=tmpdf):
+      ctx.add_lines([
+        ".drop({cols}, axis=1)",
+        ".reset_index(drop=True))" ],
+        df=self.v_outdf,
+        cols=json.dumps(cols_to_remove))
 
     ctx.add_line("# End Groupby")
     ctx.add_line("")

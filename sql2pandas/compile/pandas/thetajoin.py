@@ -15,8 +15,6 @@ class PandasThetaJoinLeftTranslator(ThetaJoinLeftTranslator, PandasTranslator):
     self.v_ldf = ctx['df']
     ctx.pop_vars()
 
-    self.v_joinkey = ctx.new_var("_joinkey")
-    ctx.add_line("{df}['{key}'] = 0", df=self.v_ldf, key=self.v_joinkey)
     self.parent_translator.consume(ctx)
 
 
@@ -35,24 +33,30 @@ class PandasThetaJoinRightTranslator(ThetaJoinRightTranslator, PandasRightTransl
     self.v_rdf = ctx['df']
     ctx.pop_vars()
 
-    lines = [
-      "{rdf}['{key}'] = 0",
-      "{outdf} = {ldf}.merge({rdf}, on='{key}', how='outer').drop('{key}', axis=1)"
-    ]
-    ctx.add_lines(lines,
+    ctx.add_line("")
+    ctx.add_line("# Start Thetajoin %s" % self.op)
+
+    kwargs = dict(
       outdf=self.v_outdf,
       ldf=self.left.v_ldf,
       rdf=self.v_rdf,
-      key=self.left.v_joinkey)
+      key=ctx.new_var("_joinkey"))
+    kwargs['right'] = "{rdf}.assign({key}=0)".format(**kwargs)
+
+    with ctx.indent("{outdf} = ({ldf}.assign({key}=0)", **kwargs):
+      ctx.add_lines([
+        ".merge({right}, on='{key}', how='outer')",
+        ".drop('{key}', axis=1))"], 
+        **kwargs)
 
     if str(self.op.cond) != "True":
-      v_e = self.compile_expr(ctx, self.op.cond, self.v_outdf)
-      ctx.add_line("{outdf} = {outdf}.loc[{cond}]",
-        outdf=self.v_outdf,
-        cond=v_e
-      )
+      kwargs['cond'] = self.compile_expr(ctx, self.op.cond, self.v_outdf)
+      ctx.add_line("{outdf} = {outdf}.loc[{cond}]", **kwargs)
 
+    ctx.add_line("# End Thetajoin")
     ctx.add_line("")
+
+
     ctx['df'] = self.v_outdf
     self.parent_translator.consume(ctx)
 
