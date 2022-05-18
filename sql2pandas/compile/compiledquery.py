@@ -25,7 +25,6 @@ class CompiledQuery(object):
     self.pipelined_plan.produce(self.ctx)
 
     self.code = self.compile_to_func("compiled_q")
-    print(self.code)
     execSymbTable = {}
     try:
       exec(self.code, globals(), execSymbTable)
