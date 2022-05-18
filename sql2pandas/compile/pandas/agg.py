@@ -71,41 +71,36 @@ class PandasGroupByBottomTranslator(GroupByBottomTranslator, PandasTranslator):
     #   df[alias] = df2[a1] + df2[a2]
     #
     postprocess_exprs = []
-    kwargs = []
+    agg_kwargs = []
     cols_to_remove = [] 
     for a, e in zip(self.op.aliases, self.op.project_exprs):
       if self.can_inline(e):
-        v_agg_arg = ctx.new_var("_agg_tmp")
-        assignments.append((v_agg_arg, self.compile_expr_inline(ctx, e, v_df)))
-        #ctx.add_line("{df}['{agg_arg}'] = {e}",
-        #  df=v_df,
-        #  agg_arg=v_agg_arg,
-        #  e=self.compile_expr_inline(ctx, e, v_df))
-        kwargs.append("{a}=('{col}', 'first')".format(
-          a=a,
-          col=v_agg_arg))
+        if e.is_type(Attr):
+          agg_kwargs.append("{a}=('{col}', 'first')".format(a=a, col=e.aname))
+        else:
+          tmpname = ctx.new_var("_agg_tmp")
+          assignments.append((tmpname, self.compile_expr_inline(ctx, e, v_df)))
+          agg_kwargs.append("{a}=('{col}', 'first')".format(a=a, col=tmpname))
       else:
         aggfuncs = e.collect([AggFunc])
         for agg in aggfuncs:
           if len(agg.args) != 1:
             raise Exception("agg.py: Only support 1-arg agg functions")
 
-          v_e = self.compile_expr(ctx, agg.args[0], v_df)
-          v_agg_input = ctx.new_var("_agg_tmp")
-          assignments.append((v_agg_input, v_e))
-          #ctx.add_line("{df}['{agg_input}'] = {e}",
-          #  df=v_df,
-          #  agg_input=v_agg_input,
-          #  e=v_e
-          #)
+          if agg.args[0].is_type(Attr):
+            col = agg.args[0].aname
+          else:
+            v_e = self.compile_expr(ctx, agg.args[0], v_df)
+            col = ctx.new_var("_agg_tmp")
+            assignments.append((col, v_e))
 
           v_agg_arg = ctx.new_var("_agg_arg")
           cols_to_remove.append(v_agg_arg)
-          kwargs.append("{key}=('{col}', '{func}')".format(key=v_agg_arg, col=v_agg_input, func=agg.name))
+          agg_kwargs.append("{key}=('{col}', '{func}')".format(key=v_agg_arg, col=col, func=agg.name))
           if agg.p:
-            agg.replace(Attr(v_agg_arg, idx=len(kwargs)-1))
+            agg.replace(Attr(v_agg_arg, idx=len(agg_kwargs)-1))
           else:
-            e = Attr(v_agg_arg, idx=len(kwargs)-1)
+            e = Attr(v_agg_arg, idx=len(agg_kwargs)-1)
         postprocess_exprs.append((a,e))
 
     tmpdf = (Context()
@@ -113,26 +108,29 @@ class PandasGroupByBottomTranslator(GroupByBottomTranslator, PandasTranslator):
       .compiler.compile_to_code())
 
     # apply expressions in arguments of agg functions
-    with ctx.indent("{outdf} = ({tmpdf}", outdf=self.v_outdf, tmpdf=tmpdf):
+    kwargs = dict(
+      outdf=self.v_outdf,
+      tmpdf=tmpdf,
+      grouping_keys=json.dumps(grouping_keys),
+      agg_kwargs=", ".join(agg_kwargs),
+      cols=json.dumps(cols_to_remove))
+    with ctx.indent("{outdf} = ({tmpdf}", **kwargs):
       ctx.add_lines([
         ".groupby({grouping_keys})",
-        ".agg({kwargs}))"],
-        grouping_keys=json.dumps(grouping_keys),
-        kwargs=", ".join(kwargs))
+        ".agg({agg_kwargs}))"], **kwargs)
+    
+    ctx.print(self.v_outdf)
+    #ctx.add_line(".drop({cols}, axis=1)" ], **kwargs)
 
     # apply expressions over agg functions
-    kwargs = dict([(a, self.compile_expr(ctx, e, self.v_outdf)) 
+    assignkwargs = dict([(a, self.compile_expr(ctx, e, self.v_outdf)) 
       for a, e in postprocess_exprs])
-    tmpdf = (Context()
-      .func("{df}.assign", [], kwargs, df=self.v_outdf)
-      .compiler.compile_to_code())
 
-    with ctx.indent("{df} = ({tmpdf}", df=self.v_outdf, tmpdf=tmpdf):
-      ctx.add_lines([
-        ".drop({cols}, axis=1)",
-        ".reset_index(drop=True))" ],
-        df=self.v_outdf,
-        cols=json.dumps(cols_to_remove))
+    tmpdf = Context().func("{df} = {df}.assign", [], assignkwargs, df=self.v_outdf).compiler.compile()
+    kwargs['tmpdf'] = tmpdf
+    #tmpdf = ctx.func("{df} = {df}.assign", [], assignkwargs, df=self.v_outdf)
+    ctx.add_line("{outdf} = {tmpdf}.drop({cols}, axis=1)", **kwargs)
+    ctx.print(self.v_outdf)
 
     ctx.add_line("# End Groupby")
     ctx.add_line("")
