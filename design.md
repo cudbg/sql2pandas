@@ -99,18 +99,13 @@ In Python, using the `yield` keyword turns a function into an iterator.  This [s
 
 databass executes queries using the following workflow:
 
-        query --> [ parser ] --> parsed plan --> 
-              --> [ validation ] --> query plan
-              --> [ optimizer ] --> query plan with disambiguted attrs and
-                                    initialized schemas
-              --> [ optimizer ] --> physical query plan 
-              --> [ interpretor ] --> result tuples
-
-The interpretor step can be replaced with a compilation step instead:
-
-                  ...           --> physical query plan
+        query -->      [ parser ] --> parsed plan --> 
+              -->  [ validation ] --> query plan
+              -->   [ optimizer ] --> query plan with disambiguted attrs and
+                                      initialized schemas
+              -->   [ optimizer ] --> physical query plan 
               --> [ compilation ] --> python code string
-              --> [ python eval() ] --> python function --> result tuples
+              -->   [ py eval() ] --> python function --> result tuples
 
 
 

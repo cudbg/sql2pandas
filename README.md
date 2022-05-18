@@ -7,6 +7,6 @@ and uses query compilation to generate Pandas code.
 
 Is this overkill?  Probably!   sql2pandas is retrofitted on top of the [databass](https://github.com/w4111/databass-public) 
 course project for Columbia's [Introduction to Databases course](https://w4111.github.io).
-You can read the [design doc](./design) for a high level overview of how
+You can read the [design doc](./design.md) for a high level overview of how
 databass works.
 
