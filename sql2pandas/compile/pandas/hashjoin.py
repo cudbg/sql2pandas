@@ -27,9 +27,11 @@ class PandasHashJoinLeftTranslator(HashJoinLeftTranslator, PandasTranslator):
     self.v_ldf = ctx['df']
     ctx.pop_vars()
     
-    v_lkey = self.compile_expr(ctx, self.op.join_attrs[0], v_ldf)
+    ctx.add_line("")
+    ctx.add_line("# Start Hash Join %s" % self.op)
+    v_lkey = self.compile_expr(ctx, self.op.join_attrs[0], self.v_ldf)
     ctx.add_line("{df}['_joinkey'] = {lkey}",
-        df=v_ldf,
+        df=self.v_ldf,
         lkey=v_lkey)
 
 
@@ -62,13 +64,18 @@ class PandasHashJoinRightTranslator(HashJoinRightTranslator, PandasRightTranslat
     v_rdf = ctx['df']
     ctx.pop_vars()
 
-    v_rkey = self.compile_expr(ctx, self.op.join_attrs[1], v_rrow)
+    v_rkey = self.compile_expr(ctx, self.op.join_attrs[1], v_rdf)
     ctx.add_line("{df}['_joinkey'] = {rkey}", df=v_rdf, rkey=v_rkey)
-    ctx.add_line("{outdf} = {ldf}.join({rdf}, on='_joinkey'",
+    ctx.add_line("{outdf} = {ldf}.join({rdf}, lsuffix='_l', rsuffix='_r', on='_joinkey')",
         outdf=self.v_outdf,
         ldf=v_ldf,
         rdf=v_rdf)
+    ctx.add_line("{outdf} = {outdf}.drop(['_joinkey_l', '_joinkey_r'], axis=1)",
+        outdf=self.v_outdf)
     ctx['df'] = self.v_outdf
 
+    ctx.add_line("# End Hash Join")
+    ctx.add_line("")
+    self.parent_translator.consume(ctx)
 
 

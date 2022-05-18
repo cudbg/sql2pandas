@@ -33,6 +33,9 @@ class PandasGroupByBottomTranslator(GroupByBottomTranslator, PandasTranslator):
     v_df = ctx['df']
     ctx.pop_vars()
 
+    ctx.add_line("")
+    ctx.add_line("# Start Groupby %s" % self.op)
+
 
     # Compute grouping expressions
     grouping_keys = []
@@ -121,6 +124,9 @@ class PandasGroupByBottomTranslator(GroupByBottomTranslator, PandasTranslator):
     ctx.add_line("{df} = {df}.drop({cols}, axis=1).reset_index(drop=True)",
       df=self.v_outdf,
       cols=json.dumps(cols_to_remove))
+
+    ctx.add_line("# End Groupby")
+    ctx.add_line("")
 
 
 class PandasGroupByTopTranslator(GroupByTopTranslator, PandasTranslator):

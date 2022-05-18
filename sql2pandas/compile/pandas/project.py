@@ -33,6 +33,8 @@ class PandasProjectTranslator(ProjectTranslator, PandasTranslator):
     # generate expr inlined statements
     # df.assign(attr1=expr1, attr2=expr2, ...)
 
+
+
     v_exprs = self.compile_exprs(ctx, self.op.exprs, self.v_in) 
     aliases = self.op.aliases
 

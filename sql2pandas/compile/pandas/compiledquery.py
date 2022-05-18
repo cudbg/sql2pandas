@@ -18,7 +18,7 @@ class PandasCompiledQuery(CompiledQuery):
       "import numpy as np",
       "import pandas as pd"
     ])
-    with comp.indent("def %s(**db):" % fname):
+    with comp.indent("def %s(db):" % fname):
       lines = self.ctx.compiler.compile_to_lines()
       comp.add_lines(lines)
 
