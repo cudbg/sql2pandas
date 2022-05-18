@@ -37,8 +37,7 @@ class PandasThetaJoinRightTranslator(ThetaJoinRightTranslator, PandasRightTransl
 
     lines = [
       "{rdf}['{key}'] = 0",
-      "{outdf} = {ldf}.merge({rdf}, on='{key}', how='outer')",
-      "{outdf} = {outdf}.drop('{key}', axis=1)"
+      "{outdf} = {ldf}.merge({rdf}, on='{key}', how='outer').drop('{key}', axis=1)"
     ]
     ctx.add_lines(lines,
       outdf=self.v_outdf,

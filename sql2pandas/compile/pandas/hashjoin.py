@@ -1,6 +1,35 @@
+from dataclasses import dataclass
+import json
 from ...ops import HashJoin
 from ..hashjoin import *
 from .translator import *
+
+
+class JoinExpr(object):
+
+  def __init__(self, ctx, e, v_df, side, t):
+    """
+    side:  left or right
+    """
+    self.ctx = ctx
+    self.e = e
+    self.side = side
+
+    self.key = "_%s_joinkey" % side
+    self.kwargs = dict()
+    self.drop = []
+
+    if e.is_type(Attr):
+      ctx.add_line("{df}.set_index('{name}')", df=v_df, name=e.aname)
+      self.kwargs['%s_index' % side] = bool(1)
+    else: 
+      v_e = t.compile_expr(ctx, e, v_df)
+      ctx.add_line("{df}['{lkey}'] = {e}",
+        df=v_df,
+        lkey=self.key,
+        e=v_e)
+      self.kwargs['%s_on' % side] = self.key
+      self.drop.append(self.key)
 
 
 class PandasHashJoinLeftTranslator(HashJoinLeftTranslator, PandasTranslator):
@@ -25,14 +54,14 @@ class PandasHashJoinLeftTranslator(HashJoinLeftTranslator, PandasTranslator):
     to the hash table
     """
     self.v_ldf = ctx['df']
+    self.v_lkey = '_joinkey'
     ctx.pop_vars()
-    
     ctx.add_line("")
     ctx.add_line("# Start Hash Join %s" % self.op)
-    v_lkey = self.compile_expr(ctx, self.op.join_attrs[0], self.v_ldf)
-    ctx.add_line("{df}['_joinkey'] = {lkey}",
-        df=self.v_ldf,
-        lkey=v_lkey)
+
+
+    l_expr = self.op.join_attrs[0]
+    self.join_expr = JoinExpr(ctx, l_expr, self.v_ldf, "left", self)
 
 
 class PandasHashJoinRightTranslator(HashJoinRightTranslator, PandasRightTranslator):
@@ -62,17 +91,26 @@ class PandasHashJoinRightTranslator(HashJoinRightTranslator, PandasRightTranslat
     # reference to the left translator's hash table variable
     v_ldf = self.left.v_ldf
     v_rdf = ctx['df']
+    v_rkey = "_joinkey"
     ctx.pop_vars()
 
-    v_rkey = self.compile_expr(ctx, self.op.join_attrs[1], v_rdf)
-    ctx.add_line("{df}['_joinkey'] = {rkey}", df=v_rdf, rkey=v_rkey)
-    ctx.add_line("{outdf} = {ldf}.join({rdf}, lsuffix='_l', rsuffix='_r', on='_joinkey')",
+    r_expr = self.op.join_attrs[1]
+    self.join_expr = JoinExpr(ctx, r_expr, v_rdf, "right", self)
+    kwargs = dict(suffixes=['_l', '_r'])
+    kwargs.update(self.join_expr.kwargs)
+    kwargs.update(self.left.join_expr.kwargs)
+    drop = self.left.join_expr.drop + self.join_expr.drop
+    ctx.add_line("{outdf} = {ldf}.merge({rdf}, **{kwargs})",
         outdf=self.v_outdf,
         ldf=v_ldf,
-        rdf=v_rdf)
-    ctx.add_line("{outdf} = {outdf}.drop(['_joinkey_l', '_joinkey_r'], axis=1)",
-        outdf=self.v_outdf)
+        rdf=v_rdf,
+        kwargs=kwargs)
+    if drop:
+      ctx.add_line("{outdf} = {outdf}.drop({drop}, axis=1)",
+          outdf=self.v_outdf,
+          drop=json.dumps(drop))
     ctx['df'] = self.v_outdf
+
 
     ctx.add_line("# End Hash Join")
     ctx.add_line("")

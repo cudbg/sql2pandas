@@ -169,8 +169,10 @@ class JoinOpt(object):
    """
     pred_index = defaultdict(list)
     for pred in preds:
-      lname = pred.l.tablename
-      rname = pred.r.tablename
+      l = pred.l.collect(Attr)[0]
+      r = pred.r.collect(Attr)[0]
+      lname = l.tablename
+      rname = r.tablename
       pred_index[rname].append(pred)
       pred_index[lname].append(pred)
     return pred_index

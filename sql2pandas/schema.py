@@ -40,6 +40,13 @@ class Schema(object):
       a.tablename = tablename 
     return self
 
+  def is_unique(self, attr):
+    if isinstance(attr, Attr):
+      matches = [a for a in self.attrs if a.matches(attr)]
+    if isinstance(attr, str):
+      matches = [a for a in self.attrs if a.aname == attr]
+    return len(matches) == 1
+
   def __contains__(self, attr):
     if isinstance(attr, Attr):
       return any(a.matches(attr) for a in self.attrs)

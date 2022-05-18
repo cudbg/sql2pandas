@@ -40,9 +40,10 @@ class PandasProjectTranslator(ProjectTranslator, PandasTranslator):
 
     pairs = ["%s=%s" % (a,e) 
         for a, e in zip(aliases, v_exprs)]
-    ctx.add_line("{df} = {df}.assign({kwargs})",
+    ctx.add_line("{df} = {df}.assign({kwargs})[{aliases}]",
       kwargs=",".join(pairs),
-      df=self.v_in
+      df=self.v_in,
+      aliases=aliases
     )
 
     ctx['df'] = self.v_in
