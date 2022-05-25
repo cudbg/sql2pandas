@@ -10,7 +10,7 @@ class CompiledQuery(object):
   """
   Helper function to parse, optimize, compile, execute, and run a query
   """
-  def __init__(self, qstr_or_plan):
+  def __init__(self, qstr_or_plan, *args, **kwargs):
     if isinstance(qstr_or_plan, str):
       self.plan = Collect(parse(qstr_or_plan).to_plan())
     else:
@@ -24,14 +24,7 @@ class CompiledQuery(object):
     self.ctx = Context()
     self.pipelined_plan.produce(self.ctx)
 
-    self.code = self.compile_to_func("compiled_q")
-    execSymbTable = {}
-    try:
-      exec(self.code, globals(), execSymbTable)
-    except Exception as e:
-      import traceback; traceback.print_exc()
-      raise e
-    self.f = execSymbTable["compiled_q"]
+    self.code = self.compile_to_func(*args, **kwargs)
 
 
   @property

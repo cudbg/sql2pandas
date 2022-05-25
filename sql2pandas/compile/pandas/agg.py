@@ -119,7 +119,7 @@ class PandasGroupByBottomTranslator(GroupByBottomTranslator, PandasTranslator):
         ".groupby({grouping_keys})",
         ".agg({agg_kwargs}))"], **kwargs)
     
-    ctx.print(self.v_outdf)
+    #ctx.print(self.v_outdf)
     #ctx.add_line(".drop({cols}, axis=1)" ], **kwargs)
 
     # apply expressions over agg functions
@@ -130,7 +130,7 @@ class PandasGroupByBottomTranslator(GroupByBottomTranslator, PandasTranslator):
     kwargs['tmpdf'] = tmpdf
     #tmpdf = ctx.func("{df} = {df}.assign", [], assignkwargs, df=self.v_outdf)
     ctx.add_line("{outdf} = {tmpdf}.drop({cols}, axis=1)", **kwargs)
-    ctx.print(self.v_outdf)
+    #ctx.print(self.v_outdf)
 
     ctx.add_line("# End Groupby")
     ctx.add_line("")

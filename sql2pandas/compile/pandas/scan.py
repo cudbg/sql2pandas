@@ -24,7 +24,8 @@ class PandasScanTranslator(ScanTranslator, PandasTranslator):
   def produce(self, ctx):
     v_df = ctx.new_var(self.op.alias)
 
-    ctx.declare(v_df, "db['{n}']".format(n=self.op.tablename))
+    #ctx.declare(v_df, "db['{n}']".format(n=self.op.tablename))
+    ctx.declare(v_df, self.op.tablename)
     ctx["df"] = v_df
 
     if self.child_translator:

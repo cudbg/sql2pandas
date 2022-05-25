@@ -10,12 +10,13 @@ class PandasSinkTranslator(SinkTranslator, PandasTranslator):
 
 class PandasYieldTranslator(YieldTranslator, PandasSinkTranslator):
   def consume(self, ctx):
-    ctx.add_line("yield {df}", df=ctx['df'])
+    pass
+    #ctx.add_line("yield {df}", df=ctx['df'])
 
 
 class PandasCollectTranslator(PandasYieldTranslator, PandasSinkTranslator):
   def consume(self, ctx):
-    ctx.add_line("return {df}", df=ctx['df'])
+    ctx.print(ctx['df'])
 
 class PandasPrintTranslator(PrintTranslator, PandasSinkTranslator):
   def consume(self, ctx):

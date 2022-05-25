@@ -17,13 +17,22 @@ if __name__ == "__main__":
   db = Database.db()
   db.register_dataframe("data", df)
 
-  q = sql2pandas("SELECT a, sum(b+2) as c FROM data GROUP BY a ORDER BY  a")
+  q = sql2pandas("SELECT a, sum(a)+sum(b+2) as c FROM data GROUP BY a ORDER BY  a")
   q.print_code()
-  exit()
+
   q = sql2pandas("""SELECT a FROM data""")
-  q = sql2pandas("""SELECT a, sum(b+2) * 2 as c 
+  q.print_code()
+
+  q = sql2pandas("""SELECT a, sum(a)+sum(b+2) * 2 as c 
       FROM data, (SELECT a as x FROM data) AS d2 
       WHERE (1*data.a) = d2.x GROUP BY a ORDER BY a """)
+  q.print_code()
+
+
+  q = sql2pandas("""SELECT a, sum(b+2) * 2 as c 
+  FROM data, (SELECT a as x FROM data where a < 5) AS d2 
+  WHERE data.a = d2.x
+  GROUP BY a""")
   q.print_code()
   print(q(dict(data=df)))
   exit()
