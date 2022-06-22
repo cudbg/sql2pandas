@@ -1,7 +1,7 @@
 """
 Define the structure of aggregate and scalar UDFs, and the UDF registry.
 """
-import numpy as np
+#import numpy as np
 
 class UDF(object):
   """
@@ -120,11 +120,11 @@ registry.add(ScalarUDF("upper", 1, lambda s: str(s).upper()))
 #
 
 registry.add(IncAggUDF("count", 1, len, lambda: 0, lambda s, v: s+1, lambda s:s))
-registry.add(IncAggUDF("avg", 1, np.mean, 
+registry.add(IncAggUDF("avg", 1, lambda vs: float(sum(vs)) / float(len(vs)),
   lambda: (0, 0), 
   lambda s, v: (s[0]+v, s[1]+1),
   lambda s: (s[0] / s[1]) if s[1] else float('nan')))
-registry.add(IncAggUDF("sum", 1, np.sum, lambda: 0, lambda s, v: s+v, lambda s: s))
+registry.add(IncAggUDF("sum", 1, sum, lambda: 0, lambda s, v: s+v, lambda s: s))
 
 # Welford's algorithm for online std
 std_init = lambda: [0, 0., 0]
@@ -138,8 +138,8 @@ def std_finalize(s):
   if s[0] < 2: return float('nan')
   return s[2] / (s[0] - 1)
 
-registry.add(IncAggUDF("std", 1, np.std, std_init, std_update, std_finalize))
-registry.add(IncAggUDF("stdev", 1, np.std, std_init, std_update, std_finalize))
+#registry.add(IncAggUDF("std", 1, np.std, std_init, std_update, std_finalize))
+#registry.add(IncAggUDF("stdev", 1, np.std, std_init, std_update, std_finalize))
 
 
 if __name__ == "__main__":

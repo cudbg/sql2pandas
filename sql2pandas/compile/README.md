@@ -23,17 +23,11 @@ Collect()
 '''
 
 
-import numpy as np
 import pandas as pd
-def compiled_q(db):
-  data = db['data']
-  data = data.assign(a=data.iloc[:,0])
-  return data
 
+# .. load dataset ..
 
-
-df = pd.DataFrame(dict(a=range(10), b=range(10)))
-print(compiled_q(data=df))
+data.assign(a=data.iloc[:,0])
 ```
 
 

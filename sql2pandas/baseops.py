@@ -10,7 +10,6 @@ import types
 import inspect
 import pandas
 import numbers
-import numpy as np
 from itertools import chain
 from collections import defaultdict
 

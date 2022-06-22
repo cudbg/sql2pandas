@@ -1,6 +1,5 @@
 import re
 import math
-import numpy as np
 from .ops import *
 from .udfs import *
 
