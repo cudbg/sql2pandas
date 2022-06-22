@@ -22,12 +22,13 @@ Collect()
     Scan(data AS data)
 '''
 
-
 import pandas as pd
+import io
 
-# .. load dataset ..
-
-data.assign(a=data.iloc[:,0])
+# csv = ... CSV STRING ...
+data = pd.read_csv(io.StringIO(csv))
+data = data.assign(a=data.iloc[:,0])[['a']]
+print(data)
 ```
 
 

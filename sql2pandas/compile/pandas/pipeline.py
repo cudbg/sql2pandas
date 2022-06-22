@@ -58,6 +58,7 @@ class PandasPipelines(Pipelines):
         (Yield, PandasYieldTranslator),
         (Print, PandasPrintTranslator),
         (Collect, PandasCollectTranslator),
+        (ToString, PandasToStringTranslator),
         (SubQuerySource, PandasSubQueryTranslator),
         (Scan, PandasScanTranslator),
         (DummyScan, PandasDummyScanTranslator),

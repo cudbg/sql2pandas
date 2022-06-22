@@ -22,6 +22,10 @@ class PandasPrintTranslator(PrintTranslator, PandasSinkTranslator):
   def consume(self, ctx):
     ctx.add_line("print({df})", df=ctx['df'])
 
+class PandasToStringTranslator(ToStringTranslator, PandasSinkTranslator):
+  def consume(self, ctx):
+    ctx.add_line("{df}.to_string()", df=ctx['df'])
+
 
 
 

@@ -15,4 +15,7 @@ class Collect(Sink):
 class Print(Sink):
   pass
 
+class ToString(Sink):
+  pass
+
 

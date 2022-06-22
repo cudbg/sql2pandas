@@ -24,5 +24,8 @@ class PrintTranslator(SinkTranslator):
     super(PrintTranslator, self).__init__(*args, **kwargs)
 
 
+class ToStringTranslator(SinkTranslator):
+  def __init__(self, *args, **kwargs):
+    super(ToStringTranslator, self).__init__(*args, **kwargs)
 
 

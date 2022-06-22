@@ -20,7 +20,7 @@ class PandasLimitTranslator(LimitTranslator, PandasTranslator):
       df=self.v_df,
       s=self.op._offset,
       e=self.op._offset+self.op._limit)
-    ctx['df'] = v_outdf
+    ctx['df'] = self.v_outdf
     self.parent_translator.consume(ctx)
 
 

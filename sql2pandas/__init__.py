@@ -16,7 +16,7 @@ from .context import *
 def sql2pandas(sql):
   opt = Optimizer()
 
-  plan = Collect(opt(parse(sql).to_plan()))
+  plan = ToString(opt(parse(sql).to_plan()))
   q = PandasCompiledQuery(plan)
   return q
 
