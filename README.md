@@ -33,26 +33,23 @@ q = sql2pandas.sql2pandas("SELECT a, sum(b+2) as c FROM data GROUP BY a ORDER BY
 print(q.code)
 ```
 
-You should see the following generated Pandas code
+You should see the generated Pandas code like:
 
 ```python
-import numpy as np
 import pandas as pd
-def compiled_q(db):
-  data = db['data']
+csv = '''YOUR CSV DATA HERE'''
+data = pd.read_csv(io.StringIO(csv))
 
+# Start Groupby GROUPBY(data.a:num, |, data.a:num as a, sum(data.b:num + 2.0) as c, data.a:num as _ordby_0)
+df = (data.assign(_gexpr=data.iloc[:,0], _agg_tmp=(data.iloc[:,1]) + (2.0))
+  .groupby(["_gexpr"])
+  .agg(a=('a', 'first'), _agg_arg=('_agg_tmp', 'sum'), _ordby_0=('a', 'first')))
+df = df = df.assign(c=df.iloc[:,1]).drop(["_agg_arg"], axis=1)
+# End Groupby
 
-  # Start Groupby GROUPBY(data.a:num, |, data.a:num as a, sum(data.b:num + 2.0) as c, data.a:num as _ordby_0)
-  df = (data.assign(_gexpr=data.iloc[:,0], _agg_tmp=data.iloc[:,0], _agg_tmp_1=(data.iloc[:,1]) + (2.0), _agg_tmp_2=data.iloc[:,0])
-    .groupby(["_gexpr"])
-    .agg(a=('_agg_tmp', 'first'), _agg_arg=('_agg_tmp_1', 'sum'), _ordby_0=('_agg_tmp_2', 'first')))
-  df = (df.assign(c=df.iloc[:,1])
-    .drop(["_agg_arg"], axis=1)
-    .reset_index(drop=True))
-  # End Groupby
-
-  df_1 = df.sort_values(["_ordby_0"], ascending=[1])
-  df_1 = df_1.assign(a=df_1.iloc[:,0],c=df_1.iloc[:,1])[['a', 'c']]
-  return df_1
+df_1 = (df.sort_values(["_ordby_0"], ascending=[1])
+  .drop(["_ordby_0"], axis=1))
+df_1 = df_1.assign(a=df_1.iloc[:,0],c=df_1.iloc[:,1])[['a', 'c']]
+print(df_1)
 ```
 

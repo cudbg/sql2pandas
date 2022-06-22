@@ -16,7 +16,7 @@ setup(name="sql2pandas",
       scripts = [],
       package_data = { 'sql2pandas' : ['sql2pandas/data/*'] },
       install_requires = [
-        'parsimonious', 'pandas', 'numpy',
+        'parsimonious', 'pandas', 'numpy', 'duckdb',
         'python-dateutil', 'pytest'
       ],
       keywords= "database pandas engine compiler")

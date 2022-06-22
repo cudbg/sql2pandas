@@ -13,6 +13,9 @@ class PandasCompiledQuery(CompiledQuery):
     """
     Wrap the compiled query code with a function definition.
     """
+    # TODO: find table sources, write them as CSV strings loaded into
+    # custom variables, and embed into output program
+    # then change Source translator to reference the custom variables
     comp = Compiler()
     comp.add_lines([
       "import pandas as pd",
