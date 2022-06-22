@@ -75,8 +75,8 @@ async function main() {
 
   let pyodide = await loadPyodide();
 
-  $("#msg").text("(  0%) Loading numpy..")
-  await pyodide.loadPackage(["micropip", "numpy"])
+  $("#msg").text("(  0%) Loading micropip..")
+  await pyodide.loadPackage(["micropip"])
 
   $("#msg").text("( 20%) Loading pandas..")
   await pyodide.loadPackage(["pandas", "python-dateutil"])
