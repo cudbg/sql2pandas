@@ -7,7 +7,7 @@ except ImportError:
 from setuptools import setup, find_packages
 
 setup(name="sql2pandas",
-      version="0.0.04",
+      version="0.0.4",
       description="Turn SQL into Pandas Statements",
       license="MIT",
       include_package_data = True,      
@@ -16,7 +16,7 @@ setup(name="sql2pandas",
       scripts = [],
       package_data = { 'sql2pandas' : ['sql2pandas/data/*'] },
       install_requires = [
-        'parsimonious', 'pandas', 'numpy', 'duckdb',
+        'parsimonious', 'pandas', 
         'python-dateutil', 'pytest'
       ],
       keywords= "database pandas engine compiler")

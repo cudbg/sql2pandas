@@ -44,7 +44,7 @@ class CompiledQuery(object):
   def compile_to_raw(self):
     return self.ctx.compiler.compile()
 
-  def compile_to_func(self, fname="f"):
+  def compile_to_func(self):
     raise Exception("Not implemented")
 
   def print_code(self, funcname="compiled_q"):

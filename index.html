@@ -8,14 +8,16 @@
 
 <div class="container">
   <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-10 col-md-offset-2">
       <h2 id="msg">Loading Pyodide.  Text boxes disabled until ready.</h2>
     </div>
   </div>
-  <div class="row">
-    <div class="col-md-12">
+  <div class="row block">
+    <div class="col-md-2">
       <h3>1. Paste a CSV.  The table will be called <mark>data</mark></h3>
-      <textarea disabled id="py">a,b,c,d,e,f,g
+    </div>
+    <div class="col-md-10">
+      <div class="editor" disabled id="csv">a,b,c,d,e,f,g
 0,0,0,0,a,2,c
 1,1,1,0,b,4,d
 2,2,0,0,c,6,e
@@ -35,29 +37,31 @@
 16,1,0,0,abc,34,c
 17,2,1,0,cde,36,d
 18,3,0,0,a,38,e
-19,4,1,0,b,40,cde</textarea>
-      <!--<button id="pythonbtn">Run</button>-->
-      <!--<div class="alert alert-info" id="pyout"></div>-->
+19,4,1,0,b,40,cde</div>
     </div>
   </div>
 
-  <div class="row">
-    <div class="col-md-12">
+  <div class="row block">
+    <div class="col-md-2">
       <h3>2. Write SQL query</h3>
-      <textarea disabled id="q">
+    </div>
+    <div class="col-md-10">
+      <div class="editor" disabled id="q">
 SELECT a, sum(b+2) * 2 as c 
 FROM data, (SELECT 1 as x FROM data) AS d2 
 WHERE data.a = d2.x
 GROUP BY a
-      </textarea>
+      </div>
       <button id="sqlbtn">Translate</button>
     </div>
   </div>
 
-  <div class="row">
-    <div class="col-md-12">
+  <div class="row block">
+    <div class="col-md-2">
       <h3>Generated Pandas Code</h3>
-      <textarea class="code" id="pandas"> </textarea>
+    </div>
+    <div class="col-md-10">
+      <div class="editor" class="code" id="pandas"> </div>
       <textarea disabled class="alert alert-info" id="pyout"></textarea>
     </div>
   </div>
@@ -70,8 +74,35 @@ GROUP BY a
 <link rel="stylesheet" type="text/css" href="./files/bootstrap.min.css" />
 <script src="./files/jquery.js"></script>
 <script src="https://cdn.jsdelivr.net/pyodide/v0.20.0/full/pyodide.js"></script>
+<script src="./files/ace/ace.js" type="text/javascript" charset="utf-8"></script>
+
 <script>
+
+  function loadEditors() {
+    let opts = {
+        theme:"ace/theme/sqlserver",
+        readOnly: true,
+        minLines: 25 ,
+        showPrintMargin: false
+    }
+    let csveditor = ace.edit("csv", opts)
+    csveditor.session.setMode("ace/mode/text");
+    let sqleditor = ace.edit("q", opts);
+    sqleditor.session.setMode("ace/mode/sql");
+    let pyeditor = ace.edit("pandas", opts);
+    pyeditor.session.setMode("ace/mode/python");
+
+	document.addEventListener("mouseup", function(e){
+      csveditor.resize();
+      sqleditor.resize();
+      pyeditor.resize();
+	});
+    //let outeditor = ace.edit("pyout", opts);
+    return { csveditor, sqleditor, pyeditor }
+  }
+
 async function main() {
+  let editors = loadEditors();
 
   let pyodide = await loadPyodide();
 
@@ -97,18 +128,23 @@ async function main() {
   `)
   $("#msg").text("(100%) Ready!")
 
-  $("textarea").prop("disabled", false);
+  Object.values(editors).forEach((editor) => {
+      editor.setOption("readOnly", false)
+  })
+  //editors.outeditor.setOption("readOnly", true)
 
   $("#sqlbtn").click(() => {
-      let q = $("#q").val().replace(/\s/g, ' ')
-      let csv = $("#py").val();
+      let q = editors.sqleditor.getValue().replace(/\s/g, ' ')
+      let csv = editors.csveditor.getValue();
       console.log(q)
 
       let pandascode = pyodide.runPython(`
 csv = """${csv}"""
 data = pd.read_csv(io.StringIO(csv))
 db.register_dataframe("data", data)
-sql2pandas.sql2pandas("""${q}""").ctx.compiler.compile().strip()`);
+sql2pandas.sql2pandas("""${q}""").compile_to_func()
+`);
+//sql2pandas.sql2pandas("""${q}""").ctx.compiler.compile().strip()
 
       let generatedcode = `import pandas as pd
 import io
@@ -116,9 +152,8 @@ csv = """${csv}"""
 data = pd.read_csv(io.StringIO(csv))
 ${pandascode}
 `
-     $("#pandas").html(generatedcode)
-      let pandasout = pyodide.runPython(`${generatedcode}
-df.to_string()`)
+      editors.pyeditor.setValue(pandascode)
+      let pandasout = pyodide.runPython(generatedcode)
       console.log(pandasout)
       $("#pyout").html(pandasout)
   
@@ -134,11 +169,16 @@ main();
 body, textarea, code {
   font-size: 12pt;
 }
-textarea, code {
+textarea, code, .editor {
   padding: 1em;
   width: 80%;
   height: 10em;
   font-family: monospace;
+  border: 1px solid gray;
+  resize: vertical;
+}
+.block {
+  margin-bottom: 2em;
 }
 .alert, button {
   display: block;
