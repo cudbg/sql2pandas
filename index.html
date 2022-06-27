@@ -62,7 +62,7 @@ GROUP BY a
     </div>
     <div class="col-md-10">
       <div class="editor" class="code" id="pandas"> </div>
-      <textarea disabled class="alert alert-info" id="pyout"></textarea>
+      <div disabled class="alert alert-info" id="pyout" style="white-space: pre;"></div>
     </div>
   </div>
 
@@ -92,10 +92,24 @@ GROUP BY a
     let pyeditor = ace.edit("pandas", opts);
     pyeditor.session.setMode("ace/mode/python");
 
-	document.addEventListener("mouseup", function(e){
-      csveditor.resize();
-      sqleditor.resize();
-      pyeditor.resize();
+    let resizeEditors = (() => {
+      let prevt;
+      return ((t) => {
+        if (prevt != t) {
+          csveditor.resize();
+          sqleditor.resize();
+          pyeditor.resize();
+        }
+        prevt = t;
+      })
+    })
+
+    let ismousedown = true;
+    document.addEventListener("mousedown", () => { ismousedown = true; })
+    document.addEventListener("mouseup", () => { ismousedown = false; })
+    document.addEventListener("mousemove", () => {
+      if (!ismousedown) return;
+      window.requestAnimationFrame(resizeEditors)
 	});
     //let outeditor = ace.edit("pyout", opts);
     return { csveditor, sqleditor, pyeditor }
@@ -152,7 +166,11 @@ csv = """${csv}"""
 data = pd.read_csv(io.StringIO(csv))
 ${pandascode}
 `
+      let nlines = pandascode.split("\n").length + 1;
       editors.pyeditor.setValue(pandascode)
+      editors.pyeditor.clearSelection()
+      $("#pandas").css("height", `${14*nlines}px`);
+      editors.pyeditor.resize(true)
       let pandasout = pyodide.runPython(generatedcode)
       console.log(pandasout)
       $("#pyout").html(pandasout)
